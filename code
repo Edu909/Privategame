@@ -1,0 +1,165 @@
+<html>
+<head>
+    <title>My Melon Falling Game</title>
+</head>
+<body>
+<canvas id="myCanvas" width="300" height="300" style="background:url('https://t4.ftcdn.net/jpg/02/42/34/23/360_F_242342389_NBmK5GZY8PKVSW2ohxEPchaMqCVQIXUW.jpg'); background-size: cover"></canvas> 
+<script>
+    var ctx = myCanvas.getContext("2d");
+
+    var image_width = 50;
+    var image_height = 50;
+
+    var bug_width = 90;
+    var bug_height = 90;
+    var bug_x = 0;
+    var bug_y = 0;
+    var bug_speed = 20;  // Increased movement speed
+    var BugImg = new Image();
+    BugImg.src = "https://s7d2.scene7.com/is/image/CCM/ACCSTKCCM_1?$Ecom_Square_800$";  // The bug
+
+    var melon_x = 0;
+    var melon_y = 0;
+    var MelonImg = new Image();
+    MelonImg.src = "https://www.insportline.cz/upload/product/640x640/1565874752_53_62fdb23b89a34d534bb275c75babeedd1509a283.jpg.webp";  // The melon
+
+    var boot_x = 0;
+    var boot_y = 0;
+    var BootImg = new Image();
+    BootImg.src = "https://www.harrowsports.com/cdn/shop/products/fh_ballswhitesmooth_s_cc1fdff2-452e-43b2-b18e-d1700a69367e.jpg?v=1576011447";  // The boot
+
+    var score = 0;
+    var melon_speed = 3;
+    var boot_speed = 3;
+    var FPS = 40;  // How many frames per second
+    var time_remaining = 180;  // 3 minutes
+
+    var melon_speed_x = 0;  // Horizontal speed component for melon
+    var boot_speed_x = 0;   // Horizontal speed component for boot
+    var last_speed_increase_time = 0;
+
+    function restart_game() {
+        // This gets called when the 'S' key is pressed and just sets 
+        // some important variables back to the start.
+        time_remaining = 180;
+        score = 0;
+        melon_speed = 3;
+        boot_speed = 3;
+        last_speed_increase_time = 0;
+        reset_melon();
+        reset_boot();
+    }
+
+    function reset_melon() {
+        melon_y = 0;
+        melon_x = Math.random() * (myCanvas.width - image_width);  // Random x-position
+        var angle = (Math.random() * 60 - 30) * Math.PI / 180;  // Random angle between -30 and 30 degrees
+        melon_speed_x = melon_speed * Math.tan(angle);  // Calculate horizontal speed component
+    }
+
+    function reset_boot() {
+        boot_y = 0;
+        boot_x = Math.random() * (myCanvas.width - image_width);  // Random x-position, same width as MelonImg
+        var angle = (Math.random() * 60 - 30) * Math.PI / 180;  // Random angle between -30 and 30 degrees
+        boot_speed_x = boot_speed * Math.tan(angle);  // Calculate horizontal speed component
+    }
+
+    function reset_boot_position() {
+        boot_y = 0;
+        boot_x = Math.random() * (myCanvas.width - image_width);
+    }
+
+    function ImagesTouching(x1, y1, img1_width, img1_height, x2, y2, img2_width, img2_height) {
+        // This function detects whether two images are touching - very useful function
+        if (x1 >= x2 + img2_width || x1 + img1_width <= x2) return false;   // too far to the side
+        if (y1 >= y2 + img2_height || y1 + img1_height <= y2) return false; // too far above/below
+        return true;  // otherwise, overlap   
+    }
+
+    function Do_a_Frame() {
+        ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);  // clear the background
+
+        ctx.fillStyle = "purple";
+        ctx.font = "20px Arial";
+        ctx.fillText("Score: " + score, 0, 20);  // display the score
+
+        ctx.drawImage(BugImg, bug_x, bug_y, bug_width, bug_height);  // draw the bug
+
+        ctx.fillText("Time Remaining: " + Math.round(time_remaining), 0, 45);  // display time remaining
+
+        if (time_remaining <= 0) {  // if the time has run out
+            ctx.fillStyle = "red";
+            ctx.font = "bold 50px Arial";  // say so
+            ctx.textAlign = "center";
+            ctx.fillText("Game Over", myCanvas.width / 2, myCanvas.height / 2);  
+            ctx.font = "bold 20px Arial";
+            ctx.fillText("Press S to play again", myCanvas.width / 2, (myCanvas.height / 2) + 50);
+            ctx.textAlign = "left";
+        } else {
+            time_remaining = time_remaining - 1 / FPS;  // otherwise tick the time down
+
+            // Update melon position
+            melon_y = melon_y + melon_speed;  // move the melon down the screen
+            melon_x = melon_x + melon_speed_x;  // move the melon sideways
+
+            // Update boot position
+            boot_y = boot_y + boot_speed;  // move the boot down the screen
+            boot_x = boot_x + boot_speed_x;  // move the boot sideways
+
+            // Check if the melon has gone past the bottom or out of bounds
+            if (melon_y > myCanvas.height || melon_x < 0 || melon_x > myCanvas.width - image_width) {  
+                score = score - 1;  // deduct one point
+                reset_melon();
+            }
+
+            // Check if the boot has gone past the bottom or out of bounds
+            if (boot_y > myCanvas.height || boot_x < 0 || boot_x > myCanvas.width - image_width) {  
+                score = score + 1;  // add one point for avoiding the boot
+                reset_boot_position();  // reset boot position
+            }
+
+            // Increase speed every 10 seconds
+            if (Math.floor(180 - time_remaining) % 10 === 0 && Math.floor(180 - time_remaining) !== last_speed_increase_time) {
+                melon_speed += 0.5;  // increase melon speed
+                boot_speed += 0.5;   // increase boot speed
+                last_speed_increase_time = Math.floor(180 - time_remaining);
+            }
+        }
+
+        // Draw the melon
+        ctx.drawImage(MelonImg, melon_x, melon_y, image_width, image_height);  
+
+        // Draw the boot (same size as the melon)
+        ctx.drawImage(BootImg, boot_x, boot_y, image_width, image_height);  
+
+        // Check for collisions with the melon
+        if (ImagesTouching(bug_x, bug_y, bug_width, bug_height, melon_x, melon_y, image_width, image_height)) {  
+            score = score + 1;  // add one to score
+            reset_melon();
+        }
+
+        // Check for collisions with the boot
+        if (ImagesTouching(bug_x, bug_y, bug_width, bug_height, boot_x, boot_y, image_width, image_height)) {  
+            score = score - 1;  // deduct one from score
+            reset_boot_position();  // reset boot position
+        }
+    }
+
+    setInterval(Do_a_Frame, 1000 / FPS);  // Call our frame renderer every this many milliseconds
+
+    function MyKeyDownHandler(MyEvent) { 
+        if (MyEvent.keyCode == 37 && bug_x > 0) { bug_x = bug_x - bug_speed; }  // left
+        if (MyEvent.keyCode == 39 && bug_x + bug_width < myCanvas.width) { bug_x = bug_x + bug_speed; }  // right
+        if (MyEvent.keyCode == 38 && bug_y > 0) { bug_y = bug_y - bug_speed; }  // up
+        if (MyEvent.keyCode == 40 && bug_y + bug_height < myCanvas.height) { bug_y = bug_y + bug_speed; }  // down
+        if (MyEvent.keyCode == 83) restart_game();  // S to restart 
+        MyEvent.preventDefault();
+    }
+
+    addEventListener("keydown", MyKeyDownHandler);  // listen for keystrokes  
+
+    myCanvas.width = window.innerWidth - 20;  // fill the entire browser width
+    myCanvas.height = window.innerHeight - 20;  // fill the entire browser height
+</script>
+</body>
+</html>
